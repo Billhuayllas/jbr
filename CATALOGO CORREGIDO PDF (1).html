@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotizador Corregido - JBR AUTOMOTRIZ</title>
+    <!-- Librería para generar el PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --primary-dark: #1e3a8a;
+            --primary-light: #3b82f6;
+            --accent-color: #facc15;
+            --bg-light: #eef2f5;
+            --bg-white: #ffffff;
+            --text-dark: #333;
+            --text-light: #6c757d;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 10px auto;
+            background-color: var(--bg-white);
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 20px);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            color: white;
+            padding: 20px 25px;
+            border-bottom: 5px solid var(--accent-color);
+            flex-shrink: 0;
+        }
+
+        header h1 { margin: 0; font-size: 24px; font-weight: 700; }
+        header p { margin: 5px 0 0; opacity: 0.9; font-size: 14px; }
+        
+        .sticky-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 25px;
+            background-color: var(--bg-white);
+            border-bottom: 2px solid var(--border-color);
+            flex-shrink: 0;
+            z-index: 15;
+            gap: 15px;
+        }
+
+        .grand-total-box { text-align: left; }
+        .grand-total-box .label { font-size: 16px; color: var(--text-light); margin-bottom: 2px; }
+        .grand-total-box .total-value { font-size: 28px; font-weight: 700; color: var(--primary-dark); }
+        
+        .pdf-button {
+            padding: 10px 20px;
+            color: white;
+            background-color: var(--success-color);
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .pdf-button:hover { background-color: #218838; transform: translateY(-2px); }
+
+        .table-wrapper {
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        
+        thead th { 
+            background-color: #f8f9fa; 
+            color: #495057; 
+            font-weight: 600; 
+            font-size: 12px; 
+            text-transform: uppercase; 
+            position: sticky; 
+            top: 0; 
+            z-index: 10;
+        }
+
+        td { font-size: 14px; padding: 12px 15px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        .item-cell { font-weight: 700; }
+        .product-name-cell { font-weight: 700; color: var(--primary-dark); }
+        .quantity-input { width: 65px; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; text-align: center; font-size: 16px; font-weight: 600; }
+        .quantity-input:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); outline: none; }
+        .price, .row-total { font-weight: 600; color: #2c5282; }
+        .row-total { color: #2d6a4f; }
+        
+        .no-print { display: table-cell; }
+        .print-only { display: none; }
+
+        @media (max-width: 768px) {
+            body { padding: 0; }
+            .container { margin: 0; border-radius: 0; height: 100vh; box-shadow: none; }
+            header { padding: 15px 20px; }
+            header h1 { font-size: 20px; }
+            header p { font-size: 12px; }
+
+            .sticky-summary { padding: 8px 15px; flex-wrap: wrap; gap: 10px; }
+            .grand-total-box { flex-grow: 1; }
+            .grand-total-box .label { font-size: 12px; }
+            .grand-total-box .total-value { font-size: 20px; }
+            .pdf-button { font-size: 13px; padding: 8px 12px; }
+
+            .table-wrapper { padding: 0 5px; }
+            
+            thead { display: none; }
+            tr { display: block; border: 1px solid var(--border-color); border-radius: 8px; margin: 8px; padding: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+            td { display: flex; justify-content: space-between; align-items: center; padding: 6px 5px; font-size: 13px; border-bottom: 1px dashed #f0f0f0; }
+            td:last-child { border-bottom: none; }
+            td::before { content: attr(data-label); font-weight: 600; color: var(--text-light); font-size: 12px; text-align: left; padding-right: 8px; }
+            
+            td.product-name-cell { display: block; font-size: 15px; font-weight: 700; background-color: #f8f9fa; margin: -8px -8px 8px -8px; padding: 10px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+            td.product-name-cell::before { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="main-container">
+        <header>
+            <h1>JBR AUTOMOTRIZ EIRL.</h1>
+            <p>Jr Saenz Peña 169 Int. 102, La Victoria - LIMA, PERU</p>
+            <p>Email: servicios_jhon@hotmail.com | Cell: 980815353</p>
+        </header>
+        
+        <div class="sticky-summary" id="sticky-summary">
+            <div class="grand-total-box">
+                <div class="label">TOTAL GENERAL</div>
+                <div class="total-value">S/ <span id="grand-total">0.00</span></div>
+            </div>
+            <button class="pdf-button" onclick="generatePdf()">Descargar PDF</button>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ítem</th>
+                        <th>Producto</th>
+                        <th>Marca</th>
+                        <th>Detalle</th>
+                        <th>Precio Unit.</th>
+                        <th class="no-print">Cantidad</th>
+                        <th class="print-only">Cant.</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="product-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const products = [
+            { product: 'BRONCE SIMPLE', brand: 'TOYOTA', detail: '3L 3/4/5 33367-14010', price: 11.00 },
+            { product: 'BRONCE SIMPLE', brand: 'CHEVROLET', detail: 'N300 1/2 CON ARITO', price: 17.00 },
+            { product: 'BRONCE SIMPLE', brand: 'CHEVROLET', detail: 'N300 3/4/5 /ZOTYE NOMAS 2012 CON ARITO', price: 15.00 },
+            { product: 'BRONCE SIMPLE', brand: 'HYUNDAI', detail: 'SONATA ó TUCSON 4ta 43384-39010', price: 13.00 },
+            { product: 'BRONCE TRIPLE', brand: 'CHEVROLET', detail: 'SAIL 1.4 1/2', price: 50.00 },
+            { product: 'BRONCE SIMPLE', brand: 'CHEVROLET', detail: 'SAIL 1.4 3/4/5', price: 12.00 },
+            { product: 'BRONCE SIMPLE', brand: 'OTROS', detail: 'MITSUBISHI ACCENT BOCA ANCHA', price: 12.00 },
+            { product: 'BRONCE SIMPLE', brand: 'IZUZO', detail: '3/4/5 CAMIONETA 8-94128-775', price: 13.00 },
+            { product: 'BRONCE SIMPLE', brand: 'TICO', detail: '3/4 ó DONFENG 3/4 96267762', price: 11.00 },
+            { product: 'BRONCE SIMPLE', brand: 'JAC', detail: '5/6 - 6 TONELADAS', price: 20.00 },
+            { product: 'BRONCE SIMPLE', brand: 'DONGAN', detail: '1/2 BOCA ANCHA', price: 10.00 },
+            { product: 'BRONCE SIMPLE', brand: 'DONFENG', detail: 'C37 o CHANGAN 1ra 354# 1LINEA', price: 11.00 },
+            { product: 'BRONCE SIMPLE', brand: 'DONFENG', detail: 'C37 o CHANGAN 2da 355# 2LINEAS', price: 12.00 },
+            { product: 'BRONCE SIMPLE', brand: 'DAIHIHATSU', detail: '1/2 PALLAR CHICO 33368-87706', price: 12.00 },
+            { product: 'BRONCE SIMPLE', brand: 'NISSAN', detail: 'SENTRA/BLUEBIRD 3/4 32607-M8001', price: 12.00 },
+            { product: 'BRONCE SIMPLE', brand: 'NISSAN', detail: 'SENTRA GA15 1/2 32607-D0100', price: 13.00 },
+            { product: 'BRONCE SIMPLE', brand: 'KIA', detail: 'PRIVE/FORD FESTIVA DE 1/2 MB502-17-265', price: 10.00 },
+            { product: 'BRONCE SIMPLE', brand: 'JACK', detail: 'GLASS 3/4 CON ARITO 43374-28500', price: 17.00 },
+            { product: 'BRONCE SIMPLE', brand: 'NISSAN', detail: 'TD 27 RETRO 32631-36N20', price: 10.00 },
+            { product: 'BRONCE SIMPLE', brand: 'NISSAN', detail: 'TD 27 1/2 Pallares cerrados', price: 11.00 },
+            { product: 'BRONCE TRIPLE', brand: 'MITSUBISHI', detail: 'CANTER 1/2 ME610458', price: 60.00 },
+            { product: 'BRONCE SIMPLE', brand: 'TOYOTA', detail: '2E,5E 1/2 Dientes rectos', price: 12.00 },
+            { product: 'BRONCE TRIPLE', brand: 'HYUNDAI', detail: 'ACCENT 3ra ó ELANTRA 3RA 2008', price: 65.00 },
+            { product: 'BRONCE TRIPLE', brand: 'NISSAN', detail: 'Urban 3RA', price: 70.00 },
+            { product: 'BRONCE SIMPLE', brand: 'JAC', detail: 'Glas 3/4', price: 12.00 },
+            { product: 'BRONCE SIMPLE', brand: 'NISSAN', detail: 'Urban 4th', price: 14.00 },
+            { product: 'BRONCE TRIPLE', brand: 'HYUNDAI', detail: 'CONTY 1/2', price: 75.00 },
+            { product: 'BRONCE TRIPLE', brand: 'MAZDA', detail: 'KIA Picanto 1/2', price: 60.00 },
+            { product: 'BRONCE TRIPLE', brand: 'JAC', detail: 'SUNRAY / RENOLD MASTER 1/2', price: 160.00 },
+            { product: 'BRONCE SIMPLE', brand: 'JAC', detail: 'SUNRAY 5/6', price: 65.00 },
+            { product: 'BRONCE SIMPLE', brand: 'MITSUBISHI', detail: 'CANTER 3/4 ME511859', price: 12.00 },
+            { product: 'BRONCE SIMPLE', brand: 'MITSUBISHI', detail: 'M2 1/2', price: 13.00 },
+            { product: 'BRONCE SIMPLE', brand: 'TOYOTA', detail: '2C 1/2 CON T DZ128', price: 12.00 },
+            { product: 'BRONCE TRIPLE', brand: 'TOYOTA', detail: '2KD 2da 33037-OK010', price: 55.00 },
+            { product: 'BRONCE TRIPLE', brand: 'DSFK', detail: 'GLORY 580/TOYOTA YARIS 2DA', price: 65.00 },
+            { product: 'BRONCE TRIPLE', brand: 'VOLEX', detail: 'C30 2DA', price: 65.00 },
+            { product: 'BRONCE TRIPLE', brand: 'VOLEX', detail: 'C30 1RA', price: 65.00 },
+            { product: 'BRONCE TRIPLE', brand: 'GELLY', detail: '1RA', price: 65.00 },
+            { product: 'BRONCE SIMPLE', brand: 'TOYOTA', detail: 'Yaris 3/4 ASBESTADO', price: 25.00 },
+            { product: 'BRONCE SIMPLE', brand: 'TOYOTA', detail: 'Yaris/COROLA 3/4', price: 16.00 },
+            { product: 'BRONCE SIMPLE', brand: 'NISSAN', detail: 'TD 23 O DATSUN 3/4 32604-P0100', price: 11.00 },
+            { product: 'BRONCE SIMPLE', brand: 'JACK', detail: '3/4 6 TONELADAS', price: 30.00 },
+            { product: 'BRONCE SIMPLE', brand: 'HONDA', detail: '1/2 CON ARITO', price: 18.00 },
+            { product: 'BRONCE SIMPLE', brand: 'DAEWOO', detail: 'REICER/CIELO 1/2 EXTERIOR', price: 22.00 },
+            { product: 'BRONCE SIMPLE', brand: 'DAEWOO', detail: 'REICER/CIELO 1/2 INTERIOR', price: 18.00 },
+            { product: 'BRONCE SIMPLE', brand: 'LINFAN', detail: '3ra-GELLY DIENTES IMCLINADOS', price: 12.00 },
+            { product: 'BRONCE SIMPLE', brand: 'SUZUKI', detail: 'APV/AEREO 3/4 24432-60A00', price: 12.00 },
+            { product: 'BRONCE SIMPLE', brand: 'HYUNDAI', detail: 'EXCELL/ELANTRA 2005,JACK GLAS 5/R', price: 12.00 },
+            { product: 'BRONCE TRIPLE', brand: 'ZOMAC', detail: 'JOYLONG 1/2 ZM015A- 1701226', price: 75.00 },
+            { product: 'BRONCE TRIPLE', brand: 'HYUNDAI', detail: 'ACCENT 1/2 1 PUNTOS', price: 55.00 },
+            { product: 'BRONCE TRIPLE', brand: 'HYUNDAI', detail: 'ACCENT 1/2 2 PUNTOS', price: 55.00 },
+            { product: 'BRONCE TRIPLE', brand: 'HYUNDAI', detail: 'ELANTRA 1/2 o KIA RIO 1/2 2 LINEA', price: 55.00 },
+            { product: 'BRONCE TRIPLE', brand: 'HYUNDAI', detail: 'ELANTRA 1/2 1 LINEAS', price: 55.00 },
+            { product: 'BRONCE TRIPLE', brand: 'JACK', detail: 'GLASS 1/2', price: 60.00 },
+            { product: 'BRONCE TRIPLE', brand: 'JACK', detail: 'REFINE 1/2 / H1 1/2', price: 65.00 },
+            { product: 'BRONCE SIMPLE', brand: 'TOYOTA', detail: '5L/3L 5ta DZ235', price: 13.00 },
+            { product: 'BRONCE TRIPLE', brand: 'MITSUBISHI', detail: 'Dacar ME11693', price: 65.00 },
+            { product: 'BRONCE SIMPLE', brand: 'HYUNDAI', detail: 'H1 1/2 CAJA 6TA ASBESTADO', price: 160.00 },
+            { product: 'BRONCE SIMPLE', brand: 'SUZUKI', detail: 'APV ó CHANGAN DE 1/2', price: 13.00 },
+            { product: 'BRONCE SIMPLE', brand: 'TOYOTA', detail: '3L,5L 1/2 #', price: 11.00 },
+            { product: 'BRONCE TRIPLE', brand: 'TOYOTA', detail: '2KD 2da 33037-OK010', price: 55.00 },
+            { product: 'BRONCE TRIPLE', brand: 'TOYOTA', detail: '2KD 1ra 33037-OK010', price: 55.00 },
+            { product: 'BRONCE SIMPLE', brand: 'TOYOTA', detail: '5E B/CHICA 4ta 33368-12021', price: 12.00 },
+            { product: 'BRONCE SIMPLE', brand: 'TOYOTA', detail: '5E B/ANCHA 4ta', price: 12.00 },
+            { product: 'BRONCE SIMPLE', brand: 'CHANGAN', detail: 'HONOR 3/4', price: 13.00 },
+            { product: 'BRONCE TRIPLE', brand: 'JACK', detail: 'T8 1/2', price: 110.00 },
+            { product: 'BRONCE TRIPLE', brand: 'TOYOTA', detail: '1GD 2DA 33037-0K070', price: 90.00 },
+            { product: 'BRONCE TRIPLE', brand: 'TOYOTA', detail: '1GD 1RA 33038-0K040', price: 95.00 },
+            { product: 'BRONCE SIMPLE', brand: 'CHEVROLET', detail: 'GT', price: 19.00 },
+            { product: 'BRONCE SIMPLE', brand: 'TOYOTA', detail: 'inner ring Toyota Yaris 2da triple', price: 25.00 },
+            { product: 'BRONCE TRIPLE', brand: 'CHANGAN', detail: 'CHANGAN 1/2', price: 70.00 },
+            { product: 'BRONCE TRIPLE', brand: 'DUCATO', detail: 'DUCATO 2018 1/2', price: 65.00 },
+            { product: 'BRONCE SIMPLE', brand: 'TOYOTA', detail: '6480--1/2', price: 13.00 },
+            { product: 'BRONCE SIMPLE', brand: 'IVECO', detail: 'IVECO 2830.5 3/4/5', price: 15.00 },
+            { product: 'BRONCE TRIPLE', brand: 'CHERY', detail: 'Chery 525MHB-1701540', price: 85.00 },
+            { product: 'BRONCE TRIPLE', brand: 'NISSAN', detail: '32620-VX22B NISSAN URBAN 2ND', price: 75.00 },
+            { product: 'BRONCE TRIPLE', brand: '', detail: '532 no carbon', price: 65.00 },
+            { product: 'BRONCE TRIPLE', brand: '', detail: '532 carbon', price: 85.00 },
+            { product: 'SINCRONIZADOR', brand: 'TOYOTA', detail: '1KZ 3/4, JOYLONG 3/4, COMPLETO CON PALLARES', price: 75.00 },
+            { product: 'SINCRONIZADOR', brand: 'CHEVROLET', detail: 'SAIL 1.4 3/4 COMPLETO', price: 65.00 },
+            { product: 'SINCRONIZADOR', brand: 'TOYOTA', detail: '2KD/L200 3/4 COMPLETO', price: 100.00 },
+            { product: 'SINCRONIZADOR', brand: 'NISSAN', detail: 'TD 27 1/2 CUBO Y CORREDOR', price: 110.00 },
+            { product: 'SINCRONIZADOR', brand: 'DFSK', detail: 'C37 3/4 COMPLETO', price: 65.00 },
+            { product: 'SINCRONIZADOR', brand: 'NISSAN', detail: 'TD 27 5/R COMPLETO CON PALLARES', price: 80.00 },
+            { product: 'SINCRONIZADOR', brand: 'TOYOTA', detail: '2KD 3/4 CUBO SOLO', price: 55.00 },
+            { product: 'MESA DE PIÑON', brand: 'NISSAN', detail: 'TD 27 1/2 - 3/4 QD', price: 45.00 },
+            { product: 'PLANCHA', brand: 'CHEVROLET', detail: 'SAIL 6 HUECOS', price: 30.00 },
+            { product: 'PIÑON', brand: 'LIFAN', detail: 'FOYSON 1RA (41 DIENTES)', price: 70.00 },
+            { product: 'POLINES', brand: 'TOYOTA', detail: '3L', price: 12.00 },
+            { product: 'DESLIZANTE', brand: 'TOYOTA', detail: '3L', price: 80.00 },
+            { product: 'TREN FIJO', brand: 'TOYOTA', detail: '3L', price: 170.00 },
+            { product: 'TREN FIJO', brand: 'TOYOTA', detail: '5L', price: 185.00 },
+            { product: 'TREN FIJO', brand: 'JIMBEY', detail: '-', price: 160.00 },
+            { product: 'PROPULSOR-DISCO', brand: 'LIFAN', detail: 'FOYSON PUNTA GRUESA', price: 160.00 },
+            { product: 'PROPULSOR-YUGO', brand: 'NISSAN', detail: 'TD27 34/36T BOCA CHICA+ PIÑON DE 4TA', price: 120.00 },
+            { product: 'TREN FIJO', brand: 'NISSAN', detail: 'TD27', price: 240.00 },
+            { product: 'PIÑON', brand: 'CHEVROLET', detail: 'SAIL 1.4 4th 33/35T', price: 60.00 },
+            { product: 'PROPULSOR-YUGO', brand: 'TOYOTA', detail: '2KD', price: 140.00 },
+            { product: 'PIÑON', brand: 'CHEVROLET', detail: 'SAIL 1.4 2DA SIN LINEA (41 DIENTES)', price: 70.00 },
+            { product: 'TREN FIJO', brand: 'HAFEI', detail: 'CON 5TA', price: 100.00 },
+            { product: 'PROPULSOR-YUGO', brand: 'HAFEI', detail: '21 DIENTES', price: 70.00 },
+            { product: 'DESLIZANTE', brand: 'HAFEI', detail: 'CON 5TA (18 DIENTES DE YUGO)', price: 75.00 },
+            { product: 'TREN FIJO', brand: 'DAEWO', detail: 'DAMAS CON 5TA', price: 110.00 },
+            { product: 'PIÑON', brand: 'CHEVROLET', detail: 'SAIL 1.4 1RA 3 LINEAS (41 DIENTES)', price: 70.00 },
+            { product: 'PIÑON', brand: 'TOYOTA', detail: '3L 3RA (28 DIENTES)', price: 65.00 },
+            { product: 'TREN FIJO', brand: 'FOTON', detail: 'PETROLERO 1RA12/2DA19/3RA30/4TA44/RE13', price: 160.00 },
+            { product: 'PROPULSOR-DISCO', brand: 'TOYOTA', detail: '5E YARIS', price: 220.00 },
+            { product: 'CADENA-DOBLE', brand: 'TOYOTA', detail: 'L200 3220A006', price: 220.00 },
+            { product: 'CADENA-DOBLE', brand: 'TOYOTA', detail: '2KD 36293-35040', price: 240.00 },
+            { product: 'PIÑON', brand: 'TOYOTA', detail: '2KD 3RA', price: 75.00 },
+            { product: 'SELECTOR', brand: 'SAIL', detail: 'SAIL 1.4 9071090', price: 140.00 },
+            { product: 'HORQUILLA DE EMBRAGUE', brand: 'CHEVROLET', detail: 'SAIL', price: 30.00 },
+            { product: 'HORQUILLA DE CAMBIO', brand: 'TOYOTA', detail: '2KD COMBI 1/2', price: 58.00 },
+            { product: 'HORQUILA Y EJE DE EMBRAGUE', brand: 'KIA', detail: 'PICANTO CON BOMBIN COMPLETO 41430-02700', price: 70.00 },
+            { product: 'EJE DE EMBRAGUE', brand: 'CHEVROLET', detail: 'SAIL', price: 35.00 },
+            { product: 'HORQUILLA DE CAMBIO', brand: 'CHEVROLET', detail: 'N300 1/2', price: 35.00 },
+            { product: 'HORQUILLA DE CAMBIO', brand: 'CHEVROLET', detail: 'N300 3/4', price: 35.00 },
+            { product: 'HORQUILLA DE CAMBIO', brand: 'CHEVROLET', detail: 'N300 5/R', price: 35.00 },
+            { product: 'RODAJE MELLIZO', brand: 'CHEVROLET', detail: 'SAIL 1.5MT - 2017', price: 110.00 },
+            { product: 'VELOCIMETRO', brand: 'NISSAN', detail: 'FRONTIER 25010-74P00', price: 50.00 },
+            { product: 'CAJA DE CAMBIOS', brand: 'TOYOTA', detail: '3L', price: 1100.00 }
+        ];
+
+        const STORAGE_KEY = 'jbrAutomotrizQuantities';
+
+        function renderProducts() {
+            const tableBody = document.getElementById('product-table-body');
+            tableBody.innerHTML = '';
+            products.forEach((p, index) => {
+                const row = `
+                    <tr data-row-product>
+                        <td data-label="Ítem" class="item-cell">${index + 1}</td>
+                        <td data-label="Producto" class="product-name-cell">${p.product}</td>
+                        <td data-label="Marca">${p.brand || 'N/A'}</td>
+                        <td data-label="Detalle">${p.detail}</td>
+                        <td data-label="Precio" class="price">S/ ${p.price.toFixed(2)}</td>
+                        <td data-label="Cantidad" class="no-print">
+                            <input type="number" min="0" class="quantity-input" data-index="${index}" data-price="${p.price}" oninput="calculateTotal(this)">
+                        </td>
+                        <td data-label="Cant." class="print-only quantity-display"></td>
+                        <td data-label="Total"><span class="row-total">S/ 0.00</span></td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        function calculateTotal(inputElement) {
+            const quantity = inputElement.value;
+            const price = inputElement.getAttribute('data-price');
+            const row = inputElement.closest('tr');
+            const totalSpan = row.querySelector('.row-total');
+            const quantityDisplay = row.querySelector('.quantity-display');
+            
+            const total = (quantity && quantity > 0) ? (parseFloat(quantity) * parseFloat(price)) : 0;
+            totalSpan.textContent = `S/ ${total.toFixed(2)}`;
+            if (quantityDisplay) quantityDisplay.textContent = quantity || '0';
+            
+            updateGrandTotal();
+            saveQuantities();
+        }
+
+        function updateGrandTotal() {
+            let grandTotal = 0;
+            document.querySelectorAll('.row-total').forEach(span => {
+                const totalValue = span.textContent.replace('S/ ', '');
+                grandTotal += parseFloat(totalValue);
+            });
+            document.getElementById('grand-total').textContent = grandTotal.toFixed(2);
+            return grandTotal;
+        }
+
+        function saveQuantities() {
+            const quantitiesToStore = {};
+            document.querySelectorAll('.quantity-input').forEach(input => {
+                const index = input.getAttribute('data-index');
+                const quantity = input.value;
+                if (quantity && parseInt(quantity) > 0) {
+                    quantitiesToStore[index] = quantity;
+                }
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(quantitiesToStore));
+        }
+
+        function loadQuantities() {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (!savedData) return;
+
+            const quantities = JSON.parse(savedData);
+            for (const index in quantities) {
+                const input = document.querySelector(`.quantity-input[data-index="${index}"]`);
+                if (input) {
+                    input.value = quantities[index];
+                    calculateTotal(input);
+                }
+            }
+        }
+
+        function prepareAndGeneratePdf() {
+             return new Promise((resolve, reject) => {
+                const grandTotal = updateGrandTotal();
+                if (grandTotal === 0) {
+                    alert("Por favor, ingrese la cantidad de al menos un producto.");
+                    return reject("No items");
+                }
+                
+                // Clonar el contenedor principal para manipularlo
+                const elementToPrint = document.getElementById('main-container').cloneNode(true);
+                
+                // *** CORRECCIÓN CLAVE: Eliminar las restricciones de altura y scroll del clon ***
+                elementToPrint.style.height = 'auto';
+                const tableWrapper = elementToPrint.querySelector('.table-wrapper');
+                if(tableWrapper) {
+                    tableWrapper.style.height = 'auto';
+                    tableWrapper.style.overflow = 'visible';
+                }
+
+                // Preparar el resto del clon para la impresión
+                const stickySummary = elementToPrint.querySelector('#sticky-summary');
+                const grandTotalDiv = stickySummary.querySelector('.grand-total-box').cloneNode(true);
+                grandTotalDiv.style.cssText = "text-align: right; padding: 20px 30px; margin-top: 20px; border-top: 2px solid #e9ecef;";
+                stickySummary.remove();
+                
+                let itemCounter = 1;
+                elementToPrint.querySelectorAll('tr[data-row-product]').forEach((clonedRow, index) => {
+                    // Obtener la cantidad del input original en la página, no del clon
+                    const originalInput = document.querySelector(`.quantity-input[data-index="${index}"]`);
+                    const quantity = originalInput ? originalInput.value : '0';
+
+                    if (!quantity || parseInt(quantity, 10) <= 0) {
+                        clonedRow.style.display = 'none';
+                    } else {
+                        clonedRow.querySelector('.item-cell').textContent = itemCounter++; 
+                        clonedRow.querySelector('.quantity-display').textContent = quantity;
+                    }
+                });
+                
+                elementToPrint.querySelectorAll('thead').forEach(th => th.style.display = 'table-header-group');
+                elementToPrint.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
+                elementToPrint.querySelectorAll('.print-only').forEach(el => el.style.display = 'table-cell');
+                elementToPrint.appendChild(grandTotalDiv);
+
+                const date = new Date();
+                const dateString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+                const filename = `Cotizacion_JBR_Automotriz_${dateString}.pdf`;
+
+                const opt = {
+                    margin: [0.5, 0.5, 0.5, 0.5], filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, logging: false },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                };
+
+                html2pdf().set(opt).from(elementToPrint).save().then(resolve).catch(reject);
+            });
+        }
+        
+        function generatePdf() {
+            prepareAndGeneratePdf().catch(error => {
+                if (error !== "No items") console.error("Error al generar PDF:", error);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProducts();
+            loadQuantities();
+        });
+    </script>
+
+</body>
+</html>
